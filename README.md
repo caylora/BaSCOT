@@ -1,2 +1,30 @@
-# Optimizing Solar Energy Production and Battery Storage with Google OR-Tools
-As extreme weather conditions worsen due to climate change, resiliency becomes an increasingly attractive feature of energy systems. Utilizing renewable energy sources such as solar panels causes power production to become more intermittent, resulting in lower resiliency. Battery storage can help to alleviate the effects of intermittent power production, but sizing an appropriate solar energy and battery storage system is difficult due to the complexity of the factors involved. Linear programming and mixed-integer linear programming serve as models for optimizing the size of a solar energy production and battery storage system, and have been utilized before in projects such as NREL’s REopt model. REopt does not include extremely local solar data, however. Allegheny College is a small liberal arts school located in Northwestern Pennsylvania which prioritizes environmental sustainability. This project aims to develop a program that uses local data from solar installers and energy usage data from Allegheny College to optimize a solar energy production and battery storage system for cost and resilience, and ultimately produce a report describing the steps required to implement that system.
+# BaSCOT: Battery and Solar Capacity Optimization Tool
+
+##### Date: 15 December 2021
+
+##### Alton Caylor
+
+##### email: caylora@allegheny.edu
+
+---
+
+![logo](img/panel.png)
+
+BaSCOT is an optimization tool that uses the OR-Tools library to solve linear optimization problems, determining the optimal capacity of solar panels and battery storage to maximize savings and improving energy resiliency in the face of grid outages.
+
+## Installing / Getting started
+
+TODO: Information for setup.
+
+```cmd
+
+```
+
+## Features
+
+TODO: Add description
+
+## Links
+
+* [Repository](https://github.com/caylora/BaSCOT)
+* [REopt Lite by NREL](https://github.com/NREL/REoptLite)
