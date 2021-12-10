@@ -1,6 +1,7 @@
 """Contains functions to handle inputting and processing data."""
-import numpy as np
 import csv
+
+import numpy as np
 
 
 def calculate_future_power_costs(current_price, rate, years):
@@ -15,7 +16,7 @@ def calculate_future_power_costs(current_price, rate, years):
 
 def read_pvwatts(file_name):
     """Retrieve energy information from pvwatts file."""
-    with open(file_name, newline="") as data:
+    with open(file_name, newline="", encoding="utf-8") as data:
         # Define csv reader
         csv_reader = csv.reader(data)
 
@@ -41,7 +42,7 @@ def read_pvwatts(file_name):
 
 def read_usage(file_name):
     """Retrieve energy information from PennElec file."""
-    with open(file_name, newline="") as data:
+    with open(file_name, newline="", encoding="utf-8") as data:
         # Define csv reader
         csv_reader = csv.reader(data)
 
@@ -79,6 +80,7 @@ def generate_constraints(data, n_hours):
 
 
 def find_maximum_difference(usage, production):
+    """Locates the index of the largest difference of two vectors."""
     diff = np.subtract(usage, production)
     loc = np.argmax(diff)
     return loc

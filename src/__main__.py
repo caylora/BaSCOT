@@ -11,7 +11,7 @@ P_RETAIL_COST, RETAIL_COSTS_LIST = si.calculate_future_power_costs(
     1.018,  # avg. growth factor/yr
     20,  # yrs
 )
-ROOF_AREA = 30
+ROOF_AREA = 30  # m^2
 AREA_USAGE = 5.181  # m^2/kW
 PROD_DATA, ANNUAL_PROD = si.read_pvwatts("input/pvwatts_hourly.csv")  # kWh/yr
 BATTERY_STORAGE_TARGET = 24  # hrs
@@ -32,18 +32,16 @@ def create_data_model():
     """Stores the data for the problem."""
     data = {}
 
+    # Define variables
+    data["variable_name"] = ["solar_capacity", "battery_capacity"]
+
     # Define constraints
-    data["constraint_names"] = [
-        "solar_capacity",
-        "battery_capacity"
-    ]
     data["constraint_coeffs"] = [
         [ANNUAL_PROD, 0],
         [AREA_USAGE, 0],
         [PROD_CON[loc], 1],
     ]
-
-    # Define bounds
+    data["constraint_signs"] = ["<=", "<=", ">="]
     data["bounds"] = [TOTAL_USAGE, ROOF_AREA, USAGE_CON[loc]]
 
     # Define coefficients for objective function
@@ -54,10 +52,26 @@ def create_data_model():
 
     # Number of variables and constraints
     data["num_vars"] = 2
-    data["num_constraints"] = 2
+    data["num_constraints"] = 3
     return data
 
 
-if __name__ == "__main__":
+def format_solution(solution):
+    """Print the solution in a readable format."""
+    obj_value = round(solution["obj_value"], 2)
+    solar_capacity = round(solution["solar_capacity"], 3)
+    battery_capacity = round(solution["battery_capacity"], 3)
+    print(f"Objective value = ${obj_value} saved over 20 year span.")
+    print(f"Solar Capacity = {solar_capacity} kW")
+    print(f"Battery Capacity = {battery_capacity} kWh")
+
+
+def main():
+    """Main entry point for the program."""
     data_model = create_data_model()
-    solver.solve_model(data_model)
+    solution = solver.solve_model(data_model)
+    format_solution(solution)
+
+
+if __name__ == "__main__":
+    main()
