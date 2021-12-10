@@ -3,13 +3,16 @@ import solar_input as si
 import solver
 
 # ------------------ DATA ------------------ #
-ARRAY_COST = 3000  # $/kW
+ARRAY_COST = 2900  # $/kW
 TAX_MOD = 0.74
-BATTERY_COST = 150  # $/kWh
+BATTERY_COST = 345  # $/kWh
+RATE = 0.134  # current $/kWh
+GROWTH = 1.03  # avg. growth factor/yr
+SPAN = 25  # yrs
 P_RETAIL_COST, RETAIL_COSTS_LIST = si.calculate_future_power_costs(
-    0.134,  # current $/kWh
-    1.018,  # avg. growth factor/yr
-    20,  # yrs
+    RATE,
+    GROWTH,
+    SPAN,
 )
 ROOF_AREA = 30  # m^2
 AREA_USAGE = 5.181  # m^2/kW
@@ -61,9 +64,14 @@ def format_solution(solution):
     obj_value = round(solution["obj_value"], 2)
     solar_capacity = round(solution["solar_capacity"], 3)
     battery_capacity = round(solution["battery_capacity"], 3)
-    print(f"Objective value = ${obj_value} saved over 20 year span.")
+    solar_price = round(solution["solar_capacity"] * ARRAY_COST, 2)
+    battery_price = round(solution["battery_capacity"] * BATTERY_COST, 2)
+    print(f"Objective value = ${obj_value} saved over {SPAN} year span.")
     print(f"Solar Capacity = {solar_capacity} kW")
     print(f"Battery Capacity = {battery_capacity} kWh")
+    print()
+    print(f"Cost of solar modules = ${solar_price}")
+    print(f"Cost of batteries = ${battery_price}")
 
 
 def main():

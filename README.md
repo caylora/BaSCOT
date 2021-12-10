@@ -23,15 +23,19 @@ TODO: Information for setup.
 Sample output:
 
 ```sample
-Objective value = $4798.06 saved over 20 year span.
-Solar Capacity = 4.542 kW    
+Objective value = $10889.95 saved over 25 year span.
+Solar Capacity = 4.542 kW
 Battery Capacity = 18.549 kWh
-```
 
+Cost of solar modules = $13170.54
+Cost of batteries = $6399.41
+```
 
 ## Features
 
 TODO: Add description
+
+## Background
 
 ## Links
 
