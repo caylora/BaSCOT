@@ -20,6 +20,15 @@ TODO: Information for setup.
 
 ```
 
+Sample output:
+
+```sample
+Objective value = $4798.06 saved over 20 year span.
+Solar Capacity = 4.542 kW    
+Battery Capacity = 18.549 kWh
+```
+
+
 ## Features
 
 TODO: Add description
