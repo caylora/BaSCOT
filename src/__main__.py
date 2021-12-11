@@ -66,6 +66,8 @@ def format_solution(solution):
     battery_capacity = round(solution["battery_capacity"], 3)
     solar_price = round(solution["solar_capacity"] * ARRAY_COST, 2)
     battery_price = round(solution["battery_capacity"] * BATTERY_COST, 2)
+    print(f"Total annual energy usage: {round(TOTAL_USAGE,3)}kWh")
+    print()
     print(f"Objective value = ${obj_value} saved over {SPAN} year span.")
     print(f"Solar Capacity = {solar_capacity} kW")
     print(f"Battery Capacity = {battery_capacity} kWh")
