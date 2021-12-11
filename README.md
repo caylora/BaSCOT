@@ -14,15 +14,20 @@ BaSCOT is an optimization tool that uses the OR-Tools library to solve linear op
 
 ## Installing / Getting started
 
-TODO: Information for setup.
+Ensure python 3.9 or greater is installed, then run the following commands to execute the program.
 
 ```cmd
+pip install or-tools
+pip install numpy
 
+python src/__main__.py
 ```
 
 Sample output:
 
 ```sample
+Total annual energy usage: 5533.79kWh
+
 Objective value = $10889.95 saved over 25 year span.
 Solar Capacity = 4.542 kW
 Battery Capacity = 18.549 kWh
