@@ -12,7 +12,7 @@
 
 BaSCOT is an optimization tool that uses the OR-Tools library to solve linear optimization problems, determining the optimal capacity of solar panels and battery storage to maximize savings and improving energy resiliency in the face of grid outages.
 
-## Installing / Getting started
+## Installing / Getting startedc
 
 Ensure python 3.9 or greater is installed, then run the following commands to execute the program.
 
