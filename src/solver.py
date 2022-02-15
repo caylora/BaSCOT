@@ -1,6 +1,4 @@
 """Module for solving models."""
-import sys
-
 from ortools.linear_solver import pywraplp
 
 
@@ -12,34 +10,30 @@ def solve_model(data):
 
     # Define the variables:
     x_list = {}
-    for count, value in enumerate(data["variable_name"]):
+    for count, value in enumerate(data["variables"]):
         x_list[count] = solver.NumVar(0, solver.infinity(), value)
-    # print(f"Number of variables = {solver.NumVariables()}")
 
     # Define the constraints:
-    for i in range(data["num_constraints"]):
-        constraint_expr = [
-            data["constraint_coeffs"][i][j] * x_list[j] for j in range(data["num_vars"])
-        ]
-        if data["constraint_signs"][i] == "<=":
-            solver.Add(sum(constraint_expr) <= data["bounds"][i])
-        elif data["constraint_signs"][i] == ">=":
-            solver.Add(sum(constraint_expr) >= data["bounds"][i])
-        else:
-            print("Sign missing for constraint.")
-            sys.exit()
-    # print("Number of constraints =", solver.NumConstraints())
+    for i in data["constraints"]:
+        # Pull info from constraint at index i:
+        # Construct the naked expression using coefficients
+        constraint_expr = [i[0][j] * x_list[j] for j in range(data["vars"])]
+        # Construct the full expression using the bound
+        solver.Add(sum(constraint_expr) <= i[1])
 
     # Define the objective function:
-    obj_expr = [data["obj_coeffs"][j] * x_list[j] for j in range(data["num_vars"])]
+    obj_expr = [data["objective"][j] * x_list[j] for j in range(data["vars"])]
     solver.Maximize(solver.Sum(obj_expr))
 
+    print("Solving a problem with:", end="\t")
+    print(f"{solver.NumVariables()} variables", end=", ")
+    print(f"{solver.NumConstraints()} constraints")
     status = solver.Solve()
 
     if status == pywraplp.Solver.OPTIMAL:
         solution = {}
         solution["obj_value"] = solver.Objective().Value()
-        for i in range(data["num_vars"]):
+        for i in range(data["vars"]):
             solution[x_list[i].name()] = x_list[i].solution_value()
         return solution
     print("The problem does not have an optimal solution.")

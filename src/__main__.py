@@ -9,7 +9,7 @@ BATTERY_COST = 345  # $/kWh
 RATE = 0.134  # current $/kWh
 GROWTH = 1.03  # avg. growth factor/yr
 SPAN = 25  # yrs
-P_RETAIL_COST, RETAIL_COSTS_LIST = si.calculate_future_power_costs(
+P_RETAIL_COST = si.calculate_future_power_costs(
     RATE,
     GROWTH,
     SPAN,
@@ -27,35 +27,37 @@ PROD_CON = si.generate_constraints(
     PROD_DATA,
     BATTERY_STORAGE_TARGET,
 )
-loc = si.find_maximum_difference(USAGE_CON, PROD_CON)
+max_index = si.find_maximum_difference(USAGE_CON, PROD_CON)
 # ---------------- END DATA ---------------- #
 
 
 def create_data_model():
-    """Stores the data for the problem."""
+    """Creates a data model to pass to the solver."""
     data = {}
 
     # Define variables
-    data["variable_name"] = ["solar_capacity", "battery_capacity"]
+    data["variables"] = ["solar_capacity", "battery_capacity"]
 
     # Define constraints
-    data["constraint_coeffs"] = [
-        [ANNUAL_PROD, 0],
-        [AREA_USAGE, 0],
-        [PROD_CON[loc], 1],
+    data["constraints"] = [
+        # Constraint info, containing a list of coefficients and the bound.
+        # Constraint 1:
+        [[ANNUAL_PROD, 0], TOTAL_USAGE],
+        # Constraint 2:
+        [[AREA_USAGE, 0], ROOF_AREA],
+        # Constraint 3:
+        [[-PROD_CON[max_index], -1], -USAGE_CON[max_index]],
     ]
-    data["constraint_signs"] = ["<=", "<=", ">="]
-    data["bounds"] = [TOTAL_USAGE, ROOF_AREA, USAGE_CON[loc]]
 
     # Define coefficients for objective function
-    data["obj_coeffs"] = [
+    data["objective"] = [
         (-TAX_MOD * ARRAY_COST + P_RETAIL_COST * ANNUAL_PROD),
         -BATTERY_COST,
     ]
 
     # Number of variables and constraints
-    data["num_vars"] = 2
-    data["num_constraints"] = 3
+    data["vars"] = len(data["variables"])
+    data["cons"] = len(data["constraints"])
     return data
 
 

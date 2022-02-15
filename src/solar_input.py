@@ -11,7 +11,7 @@ def calculate_future_power_costs(current_price, rate, years):
     for i in range(years):
         total += current_price * pow(rate, i)
         cost_list.append(current_price * pow(rate, i))
-    return total, cost_list
+    return total
 
 
 def read_pvwatts(file_name):
