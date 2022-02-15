@@ -1,6 +1,6 @@
 # BaSCOT: Battery and Solar Capacity Optimization Tool
 
-##### Date: 15 December 2021
+##### Date: 15 February 2022
 
 ##### Alton Caylor
 
@@ -26,6 +26,7 @@ python src/__main__.py
 Sample output:
 
 ```sample
+Solving a problem with: 2 variables, 3 constraints
 Total annual energy usage: 5533.79kWh
 
 Objective value = $10889.95 saved over 25 year span.
