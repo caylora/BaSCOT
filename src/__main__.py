@@ -60,6 +60,35 @@ def create_data_model():
     data["cons"] = len(data["constraints"])
     return data
 
+def create_battery_model(hour):
+    """Creates a model for the battery state in a given hour."""
+    data = {}
+
+    # Define variables
+    data["variables"] = ["solar_capacity", "battery_capacity"]
+
+    # Define constraints
+    data["constraints"] = [
+        # Constraint info, containing a list of coefficients and the bound.
+        # Constraint 1:
+        [[ANNUAL_PROD, 0], TOTAL_USAGE],
+        # Constraint 2:
+        [[AREA_USAGE, 0], ROOF_AREA],
+        # Constraint 3:
+        [[-PROD_CON[max_index], -1], -USAGE_CON[max_index]],
+    ]
+
+    # Define coefficients for objective function
+    data["objective"] = [
+        (-TAX_MOD * ARRAY_COST + P_RETAIL_COST * ANNUAL_PROD),
+        -BATTERY_COST,
+    ]
+
+    # Number of variables and constraints
+    data["vars"] = len(data["variables"])
+    data["cons"] = len(data["constraints"])
+    return data
+
 
 def format_solution(solution):
     """Print the solution in a readable format."""

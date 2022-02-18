@@ -38,3 +38,25 @@ def solve_model(data):
         return solution
     print("The problem does not have an optimal solution.")
     return None
+
+
+def model_battery_state(data):
+    """Model battery state over period of production and consumption."""
+    solver = pywraplp.Solver.CreateSolver("SCIP")
+    battery_capacity = solver.NumVar(0, solver.infinity(), "battery_capacity")
+    charging = solver.IntVar(0, 1, "charging")
+    discharging = solver.IntVar(0, 1, "discharging")
+    energy_stored = solver.NumVar(0, solver.infinity(), "energy_stored")
+
+    # Define constraints
+    solver.Add(energy_out <= energy_stored_-1)
+    solver.Add(min_charge * batt_size <= energy_stored)
+    solver.Add(energy_stored <= max_charge)
+    solver.Add(energy_out <= max_charge * discharging)
+    solver.Add(energy_in <= max_charge * charging)
+    solver.Add(discharging + charging <= 1)
+
+    solver.Maximize(-)
+
+
+    return None
