@@ -60,23 +60,41 @@ def create_data_model():
     data["cons"] = len(data["constraints"])
     return data
 
-def create_battery_model(hour):
+
+def create_battery_model(production, usage, hour):
     """Creates a model for the battery state in a given hour."""
     data = {}
 
     # Define variables
-    data["variables"] = ["solar_capacity", "battery_capacity"]
+    data["variables"] = [
+        ["solar_capacity", "num"],      # 0
+        ["battery_capacity", "num"],    # 1
+        ["energy_stored", "num"],       # 2
+        ["energy_stored_old", "num"],   # 3
+        ["energy_in", "num"],           # 4
+        ["energy_out", "num"],          # 5
+        ["charging", "bin"],            # 6
+        ["discharging", "bin"],         # 7
+    ]
+
 
     # Define constraints
     data["constraints"] = [
         # Constraint info, containing a list of coefficients and the bound.
         # Constraint 1:
-        [[ANNUAL_PROD, 0], TOTAL_USAGE],
+        [[ANNUAL_PROD, 0, 0, 0, 0, 0, 0], TOTAL_USAGE],
         # Constraint 2:
-        [[AREA_USAGE, 0], ROOF_AREA],
+        [[AREA_USAGE, 0, 0, 0, 0, 0, 0], ROOF_AREA],
         # Constraint 3:
-        [[-PROD_CON[max_index], -1], -USAGE_CON[max_index]],
+        [[-PROD_CON[max_index], -1, 0, 0, 0, 0, 0], -USAGE_CON[max_index]],
+        # Constraint 4:
+        [[0, -1, 1, 0, 0, 0, 0]]
     ]
+    for i in range(len(usage)):
+        # Build n-value based constraints
+        constraint = [[0]]
+        data["constraints"].append(constraint)
+    
 
     # Define coefficients for objective function
     data["objective"] = [
