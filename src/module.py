@@ -30,6 +30,7 @@ PROD_CON = si.generate_constraints(
 max_index = si.find_maximum_difference(USAGE_CON, PROD_CON)
 # ---------------- END DATA ---------------- #
 
+
 def solve_problem(production, usage):
     solver = pywraplp.Solver.CreateSolver("SCIP")
     # Variables:
@@ -46,16 +47,16 @@ def solve_problem(production, usage):
         d_out[i] = solver.NumVar(0, solver.infinity(), "delta_out_" + i)
         d_c[i] = solver.IntVar(0, 1, "charging")
         d_dc[i] = solver.IntVar(0, 1, "discharging")
-    
+
     # Constraints:
     solver.Add(ANNUAL_PROD * x_A <= TOTAL_USAGE)
     solver.Add(AREA_USAGE * x_A <= ROOF_AREA)
-    
+
     for i in range(len(usage)):
         solver.Add(-production[i] * x_A + d_in[i] <= -usage[i])
         solver.Add(-production[i] * x_A - d_out[i] <= -usage[i])
-        solver.Add(d_out <= B_list[i-1:i] * d_dc[i])
+        solver.Add(d_out <= B_list[i - 1 : i] * d_dc[i])
         solver.Add(B_list[i] <= x_B)
-        solver.Add(d_in[i] <= (x_B - B_list[i-1:i]) * d_dc[i])
+        solver.Add(d_in[i] <= (x_B - B_list[i - 1 : i]) * d_dc[i])
         solver.Add(d_c[i] + d_dc[i] <= 1)
-        solver.Add(B_list[i]<=B_list[i-1:i]+d_in[i]-d_out[i])
+        solver.Add(B_list[i] <= B_list[i - 1 : i] + d_in[i] - d_out[i])

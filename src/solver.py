@@ -74,7 +74,7 @@ def model_battery_state(data):
 
     # Initialize storage constraint
     solver.Add(energy_stored=energy_stored_old + energy_in - energy_out)
-    
+
     # Define the constraints:
     for i in data["constraints"]:
         # Pull info from constraint at index i:

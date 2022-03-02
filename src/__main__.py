@@ -67,16 +67,15 @@ def create_battery_model(production, usage, hour):
 
     # Define variables
     data["variables"] = [
-        ["solar_capacity", "num"],      # 0
-        ["battery_capacity", "num"],    # 1
-        ["energy_stored", "num"],       # 2
-        ["energy_stored_old", "num"],   # 3
-        ["energy_in", "num"],           # 4
-        ["energy_out", "num"],          # 5
-        ["charging", "bin"],            # 6
-        ["discharging", "bin"],         # 7
+        ["solar_capacity", "num"],  # 0
+        ["battery_capacity", "num"],  # 1
+        ["energy_stored", "num"],  # 2
+        ["energy_stored_old", "num"],  # 3
+        ["energy_in", "num"],  # 4
+        ["energy_out", "num"],  # 5
+        ["charging", "bin"],  # 6
+        ["discharging", "bin"],  # 7
     ]
-
 
     # Define constraints
     data["constraints"] = [
@@ -88,13 +87,12 @@ def create_battery_model(production, usage, hour):
         # Constraint 3:
         [[-PROD_CON[max_index], -1, 0, 0, 0, 0, 0], -USAGE_CON[max_index]],
         # Constraint 4:
-        [[0, -1, 1, 0, 0, 0, 0]]
+        [[0, -1, 1, 0, 0, 0, 0]],
     ]
     for i in range(len(usage)):
         # Build n-value based constraints
         constraint = [[0]]
         data["constraints"].append(constraint)
-    
 
     # Define coefficients for objective function
     data["objective"] = [
