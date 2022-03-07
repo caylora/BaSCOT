@@ -68,6 +68,7 @@ def generate_constraints(data, n_hours):
     """Given dataset, generate constraints in n-hour spans."""
     # Define empty numpy array of the same size as input
     constraints = np.empty_like(data)
+    values = []
 
     # Create a numpy array with starting values appended to end
     dummy = np.append(data, data[0 : (n_hours - 2)])
@@ -76,7 +77,8 @@ def generate_constraints(data, n_hours):
     for i in range(len(data)):
         # Find sum of kWh for each n hour span
         constraints[i] = np.sum(dummy[i : (i + n_hours)])
-    return constraints
+        values.append(list(dummy[i : (i + n_hours)]))
+    return constraints, values
 
 
 def find_maximum_difference(usage, production):

@@ -19,11 +19,11 @@ AREA_USAGE = 5.181  # m^2/kW
 PROD_DATA, ANNUAL_PROD = si.read_pvwatts("input/pvwatts_hourly.csv")  # kWh/yr
 BATTERY_STORAGE_TARGET = 24  # hrs
 USAGE_DATA, TOTAL_USAGE = si.read_usage("input/usage.csv")
-USAGE_CON = si.generate_constraints(
+USAGE_CON, USAGE_VALUES = si.generate_constraints(
     USAGE_DATA,
     BATTERY_STORAGE_TARGET,
 )
-PROD_CON = si.generate_constraints(
+PROD_CON, PROD_VALUES = si.generate_constraints(
     PROD_DATA,
     BATTERY_STORAGE_TARGET,
 )
@@ -125,9 +125,10 @@ def format_solution(solution):
 
 def main():
     """Main entry point for the program."""
-    data_model = create_data_model()
-    solution = solver.solve_model(data_model)
-    format_solution(solution)
+    # data_model = create_data_model()
+    # solution = solver.solve_model(data_model)
+    # format_solution(solution)
+    print(max_index)
 
 
 if __name__ == "__main__":
