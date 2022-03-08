@@ -43,7 +43,7 @@ def solve_problem(production, usage):
 
     # Variables:
     x_A = solver.NumVar(0, infinity, "solar_capacity")
-    x_B = solver.IntVar(0, infinity, "battery_capacity")
+    x_B = solver.NumVar(0, infinity, "battery_capacity")
     B_list = [solver.NumVar(0, infinity, "charge_%i" % i) for i in range(len(usage))]
     d_in = [solver.NumVar(0, infinity, "delta_in_%i" % i) for i in range(len(usage))]
     d_out = [solver.NumVar(0, infinity, "delta_out_%i" % i) for i in range(len(usage))]
@@ -56,6 +56,7 @@ def solve_problem(production, usage):
 
     for i in range(len(production)):
         # solver.Add(d_in[i] <= production[i] * x_A - usage[i])
+        solver.Add(d_in[i] <= production[i] * x_A - usage[i] * d_c[i])
         solver.Add(d_out[i] >= usage[i] - production[i] * x_A)
 
         solver.Add(B_list[i] >= x_B * MIN_CHARGE)
@@ -69,8 +70,10 @@ def solve_problem(production, usage):
         solver.Add(d_in[i] <= BIG_M * d_c[i])
 
         solver.Add(d_c[i] + d_dc[i] <= 1)
-
-        solver.Add(B_list[i] == B_list[i - 1] + d_in[i] - d_out[i])
+        if i != 0:
+            solver.Add(B_list[i] == B_list[i - 1] + d_in[i] - d_out[i])
+        else:
+            solver.Add(B_list[i] == x_B)
 
     # Define the objective function:
     solver.Maximize(
@@ -103,11 +106,11 @@ def main():
     # print(solutions)
     solution = solve_problem(PROD_VALUES[8487], USAGE_VALUES[8487])
     print(solution)
-    for c,v in enumerate(solution):
-        if c > 2:
-            print(v, [j for j in solution[v]])
-        else:
-            print(v, solution[v])
+    # for c,v in enumerate(solution):
+    #     if c > 2:
+    #         print(v, [j for j in solution[v]])
+    #     else:
+    #         print(v, solution[v])
     # print([solutions[i]["x_A"] for i in range(len(solutions))])
     # print(max([solutions[i]["x_A"] for i in range(len(solutions))]))
     # print([solution["x_A"] * i for i in PROD_VALUES[0]])
