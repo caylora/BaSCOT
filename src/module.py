@@ -1,7 +1,13 @@
-import enum
-from math import prod
-import solar_input as si
+import time
+import json
+from os.path import exists
+from click import style
+
+import matplotlib.pyplot as plt
+import numpy as np
 from ortools.linear_solver import pywraplp
+
+import solar_input as si
 
 # ------------------ DATA ------------------ #
 BIG_M = 1000000
@@ -9,11 +15,11 @@ MIN_CHARGE = 0.5
 ARRAY_COST = 2900  # $/kW
 TAX_MOD = 0.74
 BATTERY_COST = 345  # $/kWh
-RATE = 0.134  # current $/kWh
+ENERGY_COST = 0.134  # current $/kWh
 GROWTH = 1.03  # avg. growth factor/yr
 SPAN = 25  # yrs
 P_RETAIL_COST = si.calculate_future_power_costs(
-    RATE,
+    ENERGY_COST,
     GROWTH,
     SPAN,
 )
@@ -33,8 +39,38 @@ PROD_CON, PROD_VALUES = si.generate_constraints(
     PROD_DATA,
     TIME,
 )
-max_index = si.find_maximum_difference(USAGE_CON, PROD_CON)
 # ---------------- END DATA ---------------- #
+
+
+def print_progress_bar(
+    iteration,
+    total,
+    prefix="",
+    suffix="",
+    decimals=1,
+    length=100,
+    fill="█",
+    printEnd="\r",
+):
+    """
+    Call in a loop to create terminal progress bar
+    @params:
+        iteration   - Required  : current iteration (Int)
+        total       - Required  : total iterations (Int)
+        prefix      - Optional  : prefix string (Str)
+        suffix      - Optional  : suffix string (Str)
+        decimals    - Optional  : positive number of decimals in percent complete (Int)
+        length      - Optional  : character length of bar (Int)
+        fill        - Optional  : bar fill character (Str)
+        printEnd    - Optional  : end character (e.g. "\r", "\r\n") (Str)
+    """
+    percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
+    filledLength = int(length * iteration // total)
+    bar = fill * filledLength + "-" * (length - filledLength)
+    print(f"\r{prefix} |{bar}| {percent}% {suffix}", end=printEnd)
+    # Print New Line on Complete
+    if iteration == total:
+        print()
 
 
 def solve_problem(production, usage):
@@ -55,11 +91,11 @@ def solve_problem(production, usage):
     solver.Add(AREA_USAGE * x_A <= ROOF_AREA)
 
     for i in range(len(production)):
-        # solver.Add(d_in[i] <= production[i] * x_A - usage[i])
         solver.Add(d_in[i] <= production[i] * x_A - usage[i] * d_c[i])
-        solver.Add(d_out[i] >= usage[i] - production[i] * x_A)
 
-        solver.Add(B_list[i] >= x_B * MIN_CHARGE)
+        solver.Add(usage[i] - production[i] * x_A <= d_out[i])
+
+        solver.Add(x_B * MIN_CHARGE <= B_list[i])
 
         solver.Add(B_list[i] <= x_B)
 
@@ -70,18 +106,19 @@ def solve_problem(production, usage):
         solver.Add(d_in[i] <= BIG_M * d_c[i])
 
         solver.Add(d_c[i] + d_dc[i] <= 1)
+
         if i != 0:
-            solver.Add(B_list[i] == B_list[i - 1] + d_in[i] - d_out[i])
+            solver.Add(B_list[i] <= B_list[i - 1] + d_in[i] - d_out[i])
         else:
-            solver.Add(B_list[i] == x_B)
+            solver.Add(B_list[i] <= x_B)
 
     # Define the objective function:
     solver.Maximize(
         (-TAX_MOD * ARRAY_COST + P_RETAIL_COST * TOTAL_PROD) * x_A - BATTERY_COST * x_B
     )
-    print("Solving a problem with:", end="\t")
-    print(f"{solver.NumVariables()} variables", end=", ")
-    print(f"{solver.NumConstraints()} constraints")
+    # print("Solving a problem with:", end="\t")
+    # print(f"{solver.NumVariables()} variables", end=", ")
+    # print(f"{solver.NumConstraints()} constraints")
     status = solver.Solve()
 
     if status == pywraplp.Solver.OPTIMAL:
@@ -99,21 +136,80 @@ def solve_problem(production, usage):
     return None
 
 
+def plot_charge(index, solution):
+    plt.style.use("ggplot")
+
+    fig, ax = plt.subplots()
+    data = solution["B_list"][index]
+
+    ax.bar(range(24), data, color="black")
+
+    ax.set_ylabel("Charge")
+    ax.set_xlabel("Hour")
+    ax.set(xlim=(-1, 24), xticks=np.arange(0, 24))
+
+    plt.show()
+
+
+def plot_net(index, solution):
+    plt.style.use("ggplot")
+
+    x = range(24)
+
+    plt.plot(x, USAGE_VALUES[index], 'black', label="Usage")
+
+    total_production = [solution["x_A"][index] * i for i in PROD_VALUES[index]]
+    plt.plot(x, total_production, 'gray', label="Production")
+
+    plt.xlabel("Hour")
+    plt.ylabel("kWh")
+
+    plt.title("Usage vs Production")
+
+    plt.legend()
+
+    plt.show()
+
+
 def main():
-    # solutions = [
-    #     solve_problem(PROD_VALUES[i], USAGE_VALUES[i]) for i in range(len(USAGE_VALUES))
-    # ]
-    # print(solutions)
-    solution = solve_problem(PROD_VALUES[8487], USAGE_VALUES[8487])
-    print(solution)
-    # for c,v in enumerate(solution):
-    #     if c > 2:
-    #         print(v, [j for j in solution[v]])
-    #     else:
-    #         print(v, solution[v])
-    # print([solutions[i]["x_A"] for i in range(len(solutions))])
-    # print(max([solutions[i]["x_A"] for i in range(len(solutions))]))
-    # print([solution["x_A"] * i for i in PROD_VALUES[0]])
+    solution = {
+        "obj": [],
+        "x_A": [],
+        "x_B": [],
+        "B_list": [],
+        "d_in": [],
+        "d_out": [],
+        "d_c": [],
+        "d_dc": [],
+    }
+    goal = len(USAGE_VALUES)
+    if not exists("solutions.json"):
+        start_time = time.time()
+        for i in range(goal):
+            result = solve_problem(PROD_VALUES[i], USAGE_VALUES[i])
+            for j in result:
+                solution[j].append(result[j])
+            print_progress_bar(
+                i + 1,
+                goal,
+                suffix="Problem %i | Time elapsed: %.2fs"
+                % (i + 1, time.time() - start_time),
+            )
+        print("%s problems solved in %.2f seconds" % (goal, time.time() - start_time))
+        json_out = json.dumps(solution)
+        with open("solutions.json", "w") as f:
+            f.write(json_out)
+    else:
+        with open("solutions.json", "r") as f:
+            solution = json.load(f)
+            print(
+                "Loaded solutions from solutions.json. Delete the file and rerun to recalculate."
+            )
+    # solution = solve_problem(PROD_VALUES[56], USAGE_VALUES[56])
+    max_i = np.argmax(solution["x_B"])
+
+    plot_charge(max_i, solution)
+    plot_net(max_i, solution)
 
 
 if __name__ == "__main__":
