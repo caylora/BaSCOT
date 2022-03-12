@@ -19,6 +19,7 @@ Ensure python 3.9 or greater is installed, then run the following commands to ex
 ```cmd
 pip install or-tools
 pip install numpy
+pip install matplotlib
 
 python src/__main__.py
 ```
@@ -26,16 +27,40 @@ python src/__main__.py
 Sample output:
 
 ```sample
-Solving a problem with: 2 variables, 3 constraints
-Total annual energy usage: 5533.79kWh
+Scenario: max
+Objective function value: $-481.05
+Array Capacity: 4.542 kW
+Cost of array: $13170.54
+Battery Capacity: 51.508 kWh
+Cost of batteries: $17770.41
+Combined upfront cost (with tax credit): $27516.61
+Energy cost offset: $27035.56
 
-Objective value = $10889.95 saved over 25 year span.
-Solar Capacity = 4.542 kW
-Battery Capacity = 18.549 kWh
+Scenario: min
+Objective function value: $16736.28
+Array Capacity: 4.542 kW
+Cost of array: $13170.54
+Battery Capacity: 1.603 kWh
+Cost of batteries: $553.08
+Combined upfront cost (with tax credit): $10299.28
+Energy cost offset: $27035.56
 
-Cost of solar modules = $13170.54
-Cost of batteries = $6399.41
+Scenario: median
+Objective function value: $11729.00
+Array Capacity: 4.542 kW
+Cost of array: $13170.54
+Battery Capacity: 16.117 kWh
+Cost of batteries: $5560.36
+Combined upfront cost (with tax credit): $15306.56
+Energy cost offset: $27035.56
 ```
+
+Sample images:
+
+![median-charge](img/fig_c_median.png)
+
+![median-usage-production](img/fig_up_median.png)
+
 
 ## Features
 
@@ -46,4 +71,5 @@ TODO: Add description
 ## Links
 
 * [Repository](https://github.com/caylora/BaSCOT)
-* [REopt Lite by NREL](https://github.com/NREL/REoptLite)
+* [OR-Tools by Google](https://developers.google.com/optimization)
+* [SCIP](https://www.scipopt.org/)

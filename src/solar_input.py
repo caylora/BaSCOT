@@ -79,5 +79,4 @@ def generate_constraints(data, hours):
         end = i + hours
         # constraints[i] = np.sum(dummy[i:end])
         values.append(list(dummy[i:end]))
-    print(len(values))
     return values

@@ -109,7 +109,7 @@ def solve_problem(production, usage):
         if i != 0:
             solver.Add(B_list[i] <= B_list[i - 1] + d_in[i] - d_out[i])
         else:
-            solver.Add(B_list[i] <= x_B)
+            solver.Add(B_list[i] == x_B)
 
     # Define the objective function:
     solver.Maximize(
@@ -150,6 +150,8 @@ def plot_charge(index, solution, s):
     ax.set_title("Charge status over time during outage")
 
     plt.savefig("img/fig_c_%s" % s)
+
+    ax.clear()
     # plt.show()
 
 
@@ -172,6 +174,8 @@ def plot_usage_production(index, solution, s):
 
     plt.savefig("img/fig_up_%s" % s)
 
+    plt.plot().clear()
+
     # plt.show()
 
 
@@ -189,7 +193,8 @@ def report(index, solution, s):
     batt_cost = solution["x_B"][index] * BATTERY_COST
     print("Cost of batteries: $%.2f" % batt_cost)
 
-    print("Combined upfront cost: $%.2f" % (arr_cost + batt_cost))
+    print("Combined upfront cost (with tax credit): $%.2f" % (TAX_MOD * arr_cost + batt_cost))
+    print("Energy cost offset: $%.2f" % (solution["x_A"][index] * P_RETAIL_COST * TOTAL_PROD))
 
     print()
 
