@@ -1,7 +1,6 @@
-import time
 import json
+import time
 from os.path import exists
-from click import style
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -25,19 +24,19 @@ P_RETAIL_COST = si.calculate_future_power_costs(
 )
 ROOF_AREA = 30  # m^2
 AREA_USAGE = 5.181  # m^2/kW
-TIME = 24  # hrs
+TIME_SPAN = 24  # hrs
 
 # Calculated Data:
 PROD_DATA, TOTAL_PROD = si.read_pvwatts("input/pvwatts_hourly.csv")  # kWh/yr
 USAGE_DATA, TOTAL_USAGE = si.read_usage("input/usage.csv")
 
-USAGE_CON, USAGE_VALUES = si.generate_constraints(
+USAGE_VALUES = si.generate_constraints(
     USAGE_DATA,
-    TIME,
+    TIME_SPAN,
 )
-PROD_CON, PROD_VALUES = si.generate_constraints(
+PROD_VALUES = si.generate_constraints(
     PROD_DATA,
-    TIME,
+    TIME_SPAN,
 )
 # ---------------- END DATA ---------------- #
 
@@ -136,39 +135,66 @@ def solve_problem(production, usage):
     return None
 
 
-def plot_charge(index, solution):
+def plot_charge(index, solution, s):
     plt.style.use("ggplot")
 
     fig, ax = plt.subplots()
     data = solution["B_list"][index]
 
-    ax.bar(range(24), data, color="black")
+    ax.bar(range(TIME_SPAN), data, color="black")
 
-    ax.set_ylabel("Charge")
+    ax.set_ylabel("Charge (kWh)")
     ax.set_xlabel("Hour")
-    ax.set(xlim=(-1, 24), xticks=np.arange(0, 24))
+    ax.set(xlim=(-1, TIME_SPAN), xticks=np.arange(0, TIME_SPAN))
 
-    plt.show()
+    ax.set_title("Charge status over time during outage")
+
+    plt.savefig("img/fig_c_%s" % s)
+    # plt.show()
 
 
-def plot_net(index, solution):
+def plot_usage_production(index, solution, s):
     plt.style.use("ggplot")
 
-    x = range(24)
+    x = range(TIME_SPAN)
 
-    plt.plot(x, USAGE_VALUES[index], 'black', label="Usage")
+    plt.plot(x, USAGE_VALUES[index], "black", label="Usage")
 
     total_production = [solution["x_A"][index] * i for i in PROD_VALUES[index]]
-    plt.plot(x, total_production, 'gray', label="Production")
+    plt.plot(x, total_production, "gray", label="Production")
 
     plt.xlabel("Hour")
-    plt.ylabel("kWh")
+    plt.ylabel("Energy (kWh)")
 
-    plt.title("Usage vs Production")
+    plt.title("Usage versus production over time during outage")
 
     plt.legend()
 
-    plt.show()
+    plt.savefig("img/fig_up_%s" % s)
+
+    # plt.show()
+
+
+def report(index, solution, s):
+    print("Scenario: %s" % s)
+    print("Objective function value: $%.2f" % solution["obj"][index])
+
+    print("Array Capacity: %.3f" % solution["x_A"][index], "kW")
+
+    arr_cost = solution["x_A"][index] * ARRAY_COST
+    print("Cost of array: $%.2f" % arr_cost)
+
+    print("Battery Capacity: %.3f" % solution["x_B"][index], "kWh")
+
+    batt_cost = solution["x_B"][index] * BATTERY_COST
+    print("Cost of batteries: $%.2f" % batt_cost)
+
+    print("Combined upfront cost: $%.2f" % (arr_cost + batt_cost))
+
+    print()
+
+    plot_charge(index, solution, s)
+    plot_usage_production(index, solution, s)
 
 
 def main():
@@ -205,11 +231,13 @@ def main():
             print(
                 "Loaded solutions from solutions.json. Delete the file and rerun to recalculate."
             )
-    # solution = solve_problem(PROD_VALUES[56], USAGE_VALUES[56])
     max_i = np.argmax(solution["x_B"])
+    min_i = np.argmin(solution["x_B"])
+    median_i = np.argsort(solution["x_B"])[len(solution["x_B"]) // 2]
 
-    plot_charge(max_i, solution)
-    plot_net(max_i, solution)
+    report(max_i, solution, "max")
+    report(min_i, solution, "min")
+    report(median_i, solution, "median")
 
 
 if __name__ == "__main__":

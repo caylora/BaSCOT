@@ -77,6 +77,7 @@ def generate_constraints(data, hours):
     for i in range(len(data)):
         # Sum each n hour span
         end = i + hours
-        constraints[i] = np.sum(dummy[i:end])
+        # constraints[i] = np.sum(dummy[i:end])
         values.append(list(dummy[i:end]))
-    return constraints, values
+    print(len(values))
+    return values
