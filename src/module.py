@@ -49,7 +49,7 @@ def print_progress_bar(
     decimals=1,
     length=100,
     fill="█",
-    printEnd="\r",
+    print_end="\r",
 ):
     """
     Call in a loop to create terminal progress bar
@@ -63,10 +63,11 @@ def print_progress_bar(
         fill        - Optional  : bar fill character (Str)
         printEnd    - Optional  : end character (e.g. "\r", "\r\n") (Str)
     """
+    # Code borrowed from https://stackoverflow.com/a/34325723 with minor adaptations.
     percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
-    filledLength = int(length * iteration // total)
-    bar = fill * filledLength + "-" * (length - filledLength)
-    print(f"\r{prefix} |{bar}| {percent}% {suffix}", end=printEnd)
+    filled_length = int(length * iteration // total)
+    bar = fill * filled_length + "-" * (length - filled_length)
+    print(f"\r{prefix} |{bar}| {percent}% {suffix}", end=print_end)
     # Print New Line on Complete
     if iteration == total:
         print()
