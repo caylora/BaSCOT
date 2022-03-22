@@ -148,7 +148,8 @@ def plot_charge(index, solution, s):
     ax.set_xlabel("Hour")
     ax.set(xlim=(-1, TIME_SPAN), xticks=np.arange(0, TIME_SPAN))
 
-    ax.set_title("Charge status over time during outage")
+    ax.set_title(s)
+    plt.suptitle("Charge status during outage")
 
     plt.savefig("img/fig_c_%s" % s)
 
@@ -169,9 +170,11 @@ def plot_usage_production(index, solution, s):
     plt.xlabel("Hour")
     plt.ylabel("Energy (kWh)")
 
-    plt.title("Usage versus production over time during outage")
+    plt.suptitle("Usage versus production during outage")
+    plt.title(s)
 
     plt.legend()
+    plt.xticks(np.arange(min(x), max(x)+1, 1.0))
 
     plt.savefig("img/fig_up_%s" % s)
 
@@ -235,15 +238,15 @@ def main():
         with open("solutions.json", "r") as f:
             solution = json.load(f)
             print(
-                "Loaded solutions from solutions.json. Delete the file and rerun to recalculate."
+                "Loaded solutions from solutions.json. Delete the file and rerun if you make changes to the data or equations to recalculate."
             )
     max_i = np.argmax(solution["x_B"])
     min_i = np.argmin(solution["x_B"])
     median_i = np.argsort(solution["x_B"])[len(solution["x_B"]) // 2]
 
-    report(max_i, solution, "max")
-    report(min_i, solution, "min")
-    report(median_i, solution, "median")
+    report(max_i, solution, "worst_case")
+    report(min_i, solution, "best_case")
+    report(median_i, solution, "median_case")
 
 
 if __name__ == "__main__":

@@ -57,9 +57,9 @@ Energy cost offset: $27035.56
 
 Sample images:
 
-![median-charge](img/fig_c_median.png)
+![median-charge](img/fig_c_median_case.png)
 
-![median-usage-production](img/fig_up_median.png)
+![median-usage-production](img/fig_up_median_case.png)
 
 
 ## Features
