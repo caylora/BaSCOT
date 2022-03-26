@@ -17,11 +17,6 @@ BATTERY_COST = 345  # $/kWh
 ENERGY_COST = 0.134  # current $/kWh
 GROWTH = 1.03  # avg. growth factor/yr
 SPAN = 25  # yrs
-P_RETAIL_COST = si.calculate_future_power_costs(
-    ENERGY_COST,
-    GROWTH,
-    SPAN,
-)
 ROOF_AREA = 30  # m^2
 AREA_USAGE = 5.181  # m^2/kW
 TIME_SPAN = 24  # hrs
@@ -114,7 +109,8 @@ def solve_problem(production, usage):
 
     # Define the objective function:
     solver.Maximize(
-        (-TAX_MOD * ARRAY_COST + P_RETAIL_COST * TOTAL_PROD) * x_A - BATTERY_COST * x_B
+        (-TAX_MOD * ARRAY_COST + ENERGY_COST * TOTAL_PROD * SPAN) * x_A
+        - BATTERY_COST * x_B
     )
     # print("Solving a problem with:", end="\t")
     # print(f"{solver.NumVariables()} variables", end=", ")
@@ -149,12 +145,12 @@ def plot_charge(index, solution, s):
     ax.set(xlim=(-1, TIME_SPAN), xticks=np.arange(0, TIME_SPAN))
 
     ax.set_title(s)
-    plt.suptitle("Charge status during outage")
+    plt.suptitle("Charge status during %s-hour outage" % TIME_SPAN)
 
     plt.savefig("img/fig_c_%s" % s)
 
     ax.clear()
-    # plt.show()
+    plt.clf()
 
 
 def plot_usage_production(index, solution, s):
@@ -170,17 +166,53 @@ def plot_usage_production(index, solution, s):
     plt.xlabel("Hour")
     plt.ylabel("Energy (kWh)")
 
-    plt.suptitle("Usage versus production during outage")
+    plt.suptitle("Usage versus production during %s-hour outage" % TIME_SPAN)
     plt.title(s)
 
     plt.legend()
-    plt.xticks(np.arange(min(x), max(x)+1, 1.0))
+    plt.xticks(np.arange(min(x), max(x) + 1, 1.0))
 
     plt.savefig("img/fig_up_%s" % s)
 
     plt.plot().clear()
+    plt.clf()
+
+
+def plot_payback_period(index, solution, s):
+    plt.plot().clear()
+    plt.style.use("ggplot")
+
+    x = range(SPAN + 1)
+    arr_cost = solution["x_A"][index] * ARRAY_COST
+    batt_cost = solution["x_B"][index] * BATTERY_COST
+    total_cost = TAX_MOD * arr_cost + batt_cost
+    year_prod = solution["x_A"][index] * TOTAL_PROD * ENERGY_COST
+
+    plt.plot(x, [0 for _ in x], "gray")
+
+    plt.plot(x, [i * year_prod - total_cost for i in x], "black", label="Net Cost")
+
+    plt.xlabel("Year")
+    plt.ylabel("Cost")
+
+    plt.text(0.5, -1000, "Break-even year: %.0f" % (total_cost / year_prod))
+
+    plt.suptitle("Net Savings over %s-year Span" % SPAN)
+    plt.title(s)
+
+    plt.legend()
+    plt.xticks(np.arange(min(x), max(x) + 1, 1.0))
+
+    plt.tight_layout()
+
+    plt.savefig("img/fig_pp_%s" % s)
+
+    plt.plot().clear()
+    plt.clf()
 
     # plt.show()
+
+    return None
 
 
 def report(index, solution, s):
@@ -197,13 +229,20 @@ def report(index, solution, s):
     batt_cost = solution["x_B"][index] * BATTERY_COST
     print("Cost of batteries: $%.2f" % batt_cost)
 
-    print("Combined upfront cost (with tax credit): $%.2f" % (TAX_MOD * arr_cost + batt_cost))
-    print("Energy cost offset: $%.2f" % (solution["x_A"][index] * P_RETAIL_COST * TOTAL_PROD))
+    print(
+        "Combined upfront cost (with tax credit): $%.2f"
+        % (TAX_MOD * arr_cost + batt_cost)
+    )
+    print(
+        "Energy cost offset: $%.2f"
+        % (solution["x_A"][index] * ENERGY_COST * TOTAL_PROD * SPAN)
+    )
 
     print()
 
     plot_charge(index, solution, s)
     plot_usage_production(index, solution, s)
+    plot_payback_period(index, solution, s)
 
 
 def main():

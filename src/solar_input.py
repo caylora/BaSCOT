@@ -4,16 +4,6 @@ import csv
 import numpy as np
 
 
-def calculate_future_power_costs(current_price, rate, years):
-    """Estimate costs based on current price, avg. growth rate, and time."""
-    total = 0
-    cost_list = []
-    for i in range(years):
-        total += current_price * pow(rate, i)
-        cost_list.append(current_price * pow(rate, i))
-    return total
-
-
 def read_pvwatts(file_name):
     """Retrieve energy information from pvwatts file."""
     with open(file_name, newline="", encoding="utf-8") as data:
