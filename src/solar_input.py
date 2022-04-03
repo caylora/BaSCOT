@@ -57,7 +57,6 @@ def read_usage(file_name):
 def generate_constraints(data, hours):
     """Given dataset, generate constraints in n-hour spans."""
     # Define empty numpy array of the same size as input
-    constraints = np.empty_like(data)
     values = []
 
     # Create a numpy array with starting values appended to end

@@ -1,3 +1,4 @@
+"""Solve LP and MILP problems to optimize solar and battery capacity."""
 import json
 import time
 from os.path import exists
@@ -60,8 +61,8 @@ def print_progress_bar(
     # Credit: https://stackoverflow.com/a/34325723 with minor adaptations.
     percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
     filled_length = int(length * iteration // total)
-    bar = fill * filled_length + "-" * (length - filled_length)
-    print(f"\r{prefix} |{bar}| {percent}% {suffix}", end=print_end)
+    block = fill * filled_length + "-" * (length - filled_length)
+    print(f"\r{prefix} |{block}| {percent}% {suffix}", end=print_end)
     if iteration == total:
         print()
 
@@ -79,18 +80,18 @@ def solve_problem(production, usage):
     x_B = solver.NumVar(0, infinity, "battery_capacity")
 
     # Temporal variables
-    B_list = [solver.NumVar(0, infinity, "charge_%i" % i) for i in range(len(usage))]
-    d_in = [solver.NumVar(0, infinity, "delta_in_%i" % i) for i in range(len(usage))]
-    d_out = [solver.NumVar(0, infinity, "delta_out_%i" % i) for i in range(len(usage))]
-    d_c = [solver.IntVar(0, 1, "charging_%i" % i) for i in range(len(usage))]
-    d_dc = [solver.IntVar(0, 1, "discharging_%i" % i) for i in range(len(usage))]
+    B_list = [solver.NumVar(0, infinity, f"charge_{i}") for i in range(len(usage))]
+    d_in = [solver.NumVar(0, infinity, f"delta_in_{i}") for i in range(len(usage))]
+    d_out = [solver.NumVar(0, infinity, f"delta_out_{i}") for i in range(len(usage))]
+    d_c = [solver.IntVar(0, 1, f"charging_{i}") for i in range(len(usage))]
+    d_dc = [solver.IntVar(0, 1, f"discharging_{i}") for i in range(len(usage))]
 
     # Initialize constraints:
     solver.Add(ANNUAL_PRODUCTION * x_A <= ANNUAL_USAGE)
     solver.Add(AREA_USAGE * x_A <= ROOF_AREA)
 
     # Temporal constraints
-    for i in range(len(production)):
+    for i, _ in enumerate(production):
         solver.Add(d_in[i] <= production[i] * x_A - usage[i] * d_c[i])
 
         solver.Add(usage[i] - production[i] * x_A <= d_out[i])
@@ -140,37 +141,37 @@ def solve_problem(production, usage):
     return None
 
 
-def plot_charge(index, solution, s):
+def plot_charge(index, solution, scenario):
     """Plot a chart detailing charge level over the outage period."""
     plt.style.use("ggplot")
 
-    fig, ax = plt.subplots()
+    _, ax = plt.subplots()
     data = solution["B_list"][index]
-    c = []
+    colors = []
     for i in range(len(solution["d_dc"][index])):
         if solution["d_dc"][index][i]:
-            c.append("gray")
+            colors.append("gray")
         elif solution["d_c"][index][i]:
-            c.append("black")
+            colors.append("black")
         else:
-            c.append("white")
+            colors.append("white")
 
-    ax.bar(range(OUTAGE_LENGTH), data, color=c)
+    ax.bar(range(OUTAGE_LENGTH), data, color=colors)
 
     ax.set_ylabel("Charge (kWh)")
     ax.set_xlabel("Hour")
     ax.set(xlim=(-1, OUTAGE_LENGTH), xticks=np.arange(0, OUTAGE_LENGTH))
 
-    ax.set_title(s)
-    plt.suptitle("Charge status during %s-hour outage" % OUTAGE_LENGTH)
+    ax.set_title(scenario)
+    plt.suptitle(f"Charge status during {OUTAGE_LENGTH}-hour outage")
 
-    plt.savefig("img/fig_c_%s" % s)
+    plt.savefig(f"img/fig_c_{scenario}")
 
     ax.clear()
     plt.clf()
 
 
-def plot_usage_production(index, solution, s):
+def plot_usage_production(index, solution, scenario):
     """Plot a chart detailing energy usage and production over the outage period."""
     plt.style.use("ggplot")
 
@@ -186,19 +187,19 @@ def plot_usage_production(index, solution, s):
     plt.xlabel("Hour")
     plt.ylabel("Energy (kWh)")
 
-    plt.suptitle("Usage versus production during %s-hour outage" % OUTAGE_LENGTH)
-    plt.title(s)
+    plt.suptitle(f"Usage versus production during {OUTAGE_LENGTH}-hour outage")
+    plt.title(scenario)
 
     plt.legend()
     plt.xticks(np.arange(min(x), max(x) + 1, 1.0))
 
-    plt.savefig("img/fig_up_%s" % s)
+    plt.savefig(f"img/fig_up_{scenario}")
 
     plt.plot().clear()
     plt.clf()
 
 
-def plot_payback_period(index, solution, s):
+def plot_payback_period(index, solution, scenario):
     """Plot a chart detailing the years until the system pays for itself."""
     plt.plot().clear()
     plt.style.use("ggplot")
@@ -216,55 +217,53 @@ def plot_payback_period(index, solution, s):
     plt.xlabel("Year")
     plt.ylabel("Savings")
 
-    plt.text(0.5, -1000, "Break-even year: %.0f" % (total_cost / year_prod))
+    plt.text(0.5, -1000, f"Break-even year: {(total_cost / year_prod):.0f}")
 
-    plt.suptitle("Net Savings over %s-year Span" % SYSTEM_LIFESPAN)
-    plt.title(s)
+    plt.suptitle(f"Net Savings over {SYSTEM_LIFESPAN}-year Span")
+    plt.title(scenario)
 
     plt.legend()
     plt.xticks(np.arange(min(x), max(x) + 1, 1.0))
 
     plt.tight_layout()
 
-    plt.savefig("img/fig_pp_%s" % s)
+    plt.savefig(f"img/fig_pp_{scenario}")
 
     plt.plot().clear()
     plt.clf()
 
     # plt.show()
 
-    return None
 
-
-def report(index, solution, s):
+def report(index, solution, scenario):
     """Formats the output and generates several charts."""
-    print("Scenario: %s" % s)
-    print("Objective function value: $%.2f" % solution["obj"][index])
+    print(f"Scenario: {scenario}")
+    dummy = solution["obj"][index]
+    print(f"Objective function value: ${dummy:.2f}")
 
-    print("Array Capacity: %.3f" % solution["x_A"][index], "kW")
+    dummy = solution["x_A"][index]
+    print(f"Array Capacity: {dummy:.3f} kW")
 
     arr_cost = solution["x_A"][index] * ARRAY_COST
-    print("Cost of array: $%.2f" % arr_cost)
+    print(f"Cost of array: ${arr_cost:.2f}")
 
-    print("Battery Capacity: %.3f" % solution["x_B"][index], "kWh")
+    dummy = solution["x_B"][index]
+    print(f"Battery Capacity: {dummy:.3f} kWh")
 
     batt_cost = solution["x_B"][index] * BATTERY_COST
-    print("Cost of batteries: $%.2f" % batt_cost)
+    print(f"Cost of batteries: ${batt_cost:.2f}")
 
-    print(
-        "Combined upfront cost (with tax credit): $%.2f"
-        % (TAX_MODIFIER * arr_cost + batt_cost)
-    )
-    print(
-        "Energy cost offset: $%.2f"
-        % (solution["x_A"][index] * ENERGY_COST * ANNUAL_PRODUCTION * SYSTEM_LIFESPAN)
-    )
+    dummy = TAX_MODIFIER * arr_cost + batt_cost
+    print(f"Combined upfront cost (with tax credit): ${dummy:.2f}")
+
+    dummy = solution["x_A"][index] * ENERGY_COST * ANNUAL_PRODUCTION * SYSTEM_LIFESPAN
+    print(f"Energy cost offset: ${dummy:.2f}")
 
     print()
 
-    plot_charge(index, solution, s)
-    plot_usage_production(index, solution, s)
-    plot_payback_period(index, solution, s)
+    plot_charge(index, solution, scenario)
+    plot_usage_production(index, solution, scenario)
+    plot_payback_period(index, solution, scenario)
 
 
 def main():
@@ -290,19 +289,17 @@ def main():
             print_progress_bar(
                 i + 1,
                 goal,
-                suffix="Problem %i | Time elapsed: %.2fs"
-                % (i + 1, time.time() - start_time),
+                suffix=f"Problem {i+1} | Time elapsed: {time.time() - start_time:.2f}s",
             )
-        print("%s problems solved in %.2f seconds" % (goal, time.time() - start_time))
+        print(f"{goal} problems solved in {time.time() - start_time:.2f} seconds")
         json_out = json.dumps(solution)
-        with open("solutions.json", "w") as f:
+        with open("solutions.json", "w", encoding="utf-8") as f:
             f.write(json_out)
     else:
-        with open("solutions.json", "r") as f:
+        with open("solutions.json", "r", encoding="utf-8") as f:
             solution = json.load(f)
-            print(
-                "Loaded solutions from solutions.json. Delete the file and rerun if you make changes to the data or equations to recalculate."
-            )
+            print("Loaded solutions from solutions.json.")
+            print("Delete the file to recalculate.")
     max_i = np.argmax(solution["x_B"])
     min_i = np.argmin(solution["x_B"])
     median_i = np.argsort(solution["x_B"])[len(solution["x_B"]) // 2]

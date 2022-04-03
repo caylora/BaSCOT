@@ -1,7 +1,6 @@
 cff-version: 1.2.0
 title: >-
-  BaSCOT: Battery and Solar Capacity Optimization
-  Tool
+  BaSCOT: Battery and Solar Capacity Optimization Tool
 message: 'If you use this software, please cite it as below.'
 type: software
 authors:
@@ -9,5 +8,5 @@ authors:
     family-names: Caylor
     email: caylora@allegheny.edu
     affiliation: Allegheny College
-version: 0.0.2
-date-released: 2022-02-15
+version: 1.0.0
+date-released: 2022-04-04
