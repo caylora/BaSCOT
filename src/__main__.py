@@ -11,25 +11,25 @@ import solar_input as si
 # ------------------ DATA ------------------ #
 BIG_M = 1000000
 MIN_CHARGE = 0.5
-ARRAY_COST = 2989  # $/kW
-TAX_MOD = 0.74
-BATTERY_COST = 345  # $/kWh
+ARRAY_COST = 2710  # $/kW
+TAX_MODIFIER = 0.74
+BATTERY_COST = 341  # $/kWh
 ENERGY_COST = 0.134  # current $/kWh
-SPAN = 25  # yrs
+SYSTEM_LIFESPAN = 25  # yrs
 ROOF_AREA = 30  # m^2
 AREA_USAGE = 5.181  # m^2/kW
 OUTAGE_LENGTH = 24  # hrs
 
 # Calculated Data:
-PROD_DATA, TOTAL_PROD = si.read_pvwatts("input/pvwatts_hourly.csv")  # kWh/yr
-USAGE_DATA, TOTAL_USAGE = si.read_usage("input/usage.csv")
+PRODUCTION, ANNUAL_PRODUCTION = si.read_pvwatts("input/pvwatts_hourly.csv")  # kWh/yr
+USAGE, ANNUAL_USAGE = si.read_usage("input/usage.csv")
 
-USAGE_VALUES = si.generate_constraints(
-    USAGE_DATA,
+USAGE_CONSTRAINTS = si.generate_constraints(
+    USAGE,
     OUTAGE_LENGTH,
 )
-PROD_VALUES = si.generate_constraints(
-    PROD_DATA,
+PRODUCTION_CONSTRAINTS = si.generate_constraints(
+    PRODUCTION,
     OUTAGE_LENGTH,
 )
 # ---------------- END DATA ---------------- #
@@ -67,22 +67,29 @@ def print_progress_bar(
 
 
 def solve_problem(production, usage):
+    """Create a model based on inputs, and solve for the optimal installation."""
+
+    # Initialize the solver
     solver = pywraplp.Solver.CreateSolver("SCIP")
+
     infinity = solver.infinity()
 
-    # Variables:
+    # Initialize variables:
     x_A = solver.NumVar(0, infinity, "solar_capacity")
     x_B = solver.NumVar(0, infinity, "battery_capacity")
+
+    # Temporal variables
     B_list = [solver.NumVar(0, infinity, "charge_%i" % i) for i in range(len(usage))]
     d_in = [solver.NumVar(0, infinity, "delta_in_%i" % i) for i in range(len(usage))]
     d_out = [solver.NumVar(0, infinity, "delta_out_%i" % i) for i in range(len(usage))]
     d_c = [solver.IntVar(0, 1, "charging_%i" % i) for i in range(len(usage))]
     d_dc = [solver.IntVar(0, 1, "discharging_%i" % i) for i in range(len(usage))]
 
-    # Constraints:
-    solver.Add(TOTAL_PROD * x_A <= TOTAL_USAGE)
+    # Initialize constraints:
+    solver.Add(ANNUAL_PRODUCTION * x_A <= ANNUAL_USAGE)
     solver.Add(AREA_USAGE * x_A <= ROOF_AREA)
 
+    # Temporal constraints
     for i in range(len(production)):
         solver.Add(d_in[i] <= production[i] * x_A - usage[i] * d_c[i])
 
@@ -107,14 +114,15 @@ def solve_problem(production, usage):
 
     # Define the objective function:
     solver.Maximize(
-        (-TAX_MOD * ARRAY_COST + ENERGY_COST * TOTAL_PROD * SPAN) * x_A
+        (-TAX_MODIFIER * ARRAY_COST + ENERGY_COST * ANNUAL_PRODUCTION * SYSTEM_LIFESPAN)
+        * x_A
         - BATTERY_COST * x_B
     )
-    # print("Solving a problem with:", end="\t")
-    # print(f"{solver.NumVariables()} variables", end=", ")
-    # print(f"{solver.NumConstraints()} constraints")
+
+    # Solve the model
     status = solver.Solve()
 
+    # Collect and pack solution values into a dictionary
     if status == pywraplp.Solver.OPTIMAL:
         solution = {}
         solution["obj"] = solver.Objective().Value()
@@ -126,11 +134,14 @@ def solve_problem(production, usage):
         solution["d_c"] = [i.solution_value() for i in d_c]
         solution["d_dc"] = [i.solution_value() for i in d_dc]
         return solution
+
+    # If there is no solution:
     print("The problem does not have an optimal solution.")
     return None
 
 
 def plot_charge(index, solution, s):
+    """Plot a chart detailing charge level over the outage period."""
     plt.style.use("ggplot")
 
     fig, ax = plt.subplots()
@@ -160,13 +171,16 @@ def plot_charge(index, solution, s):
 
 
 def plot_usage_production(index, solution, s):
+    """Plot a chart detailing energy usage and production over the outage period."""
     plt.style.use("ggplot")
 
     x = range(OUTAGE_LENGTH)
 
-    plt.plot(x, USAGE_VALUES[index], "black", label="Usage")
+    plt.plot(x, USAGE_CONSTRAINTS[index], "black", label="Usage")
 
-    total_production = [solution["x_A"][index] * i for i in PROD_VALUES[index]]
+    total_production = [
+        solution["x_A"][index] * i for i in PRODUCTION_CONSTRAINTS[index]
+    ]
     plt.plot(x, total_production, "gray", label="Production")
 
     plt.xlabel("Hour")
@@ -185,14 +199,15 @@ def plot_usage_production(index, solution, s):
 
 
 def plot_payback_period(index, solution, s):
+    """Plot a chart detailing the years until the system pays for itself."""
     plt.plot().clear()
     plt.style.use("ggplot")
 
-    x = range(SPAN + 1)
+    x = range(SYSTEM_LIFESPAN + 1)
     arr_cost = solution["x_A"][index] * ARRAY_COST
     batt_cost = solution["x_B"][index] * BATTERY_COST
-    total_cost = TAX_MOD * arr_cost + batt_cost
-    year_prod = solution["x_A"][index] * TOTAL_PROD * ENERGY_COST
+    total_cost = TAX_MODIFIER * arr_cost + batt_cost
+    year_prod = solution["x_A"][index] * ANNUAL_PRODUCTION * ENERGY_COST
 
     plt.plot(x, [0 for _ in x], "gray")
 
@@ -203,7 +218,7 @@ def plot_payback_period(index, solution, s):
 
     plt.text(0.5, -1000, "Break-even year: %.0f" % (total_cost / year_prod))
 
-    plt.suptitle("Net Savings over %s-year Span" % SPAN)
+    plt.suptitle("Net Savings over %s-year Span" % SYSTEM_LIFESPAN)
     plt.title(s)
 
     plt.legend()
@@ -222,6 +237,7 @@ def plot_payback_period(index, solution, s):
 
 
 def report(index, solution, s):
+    """Formats the output and generates several charts."""
     print("Scenario: %s" % s)
     print("Objective function value: $%.2f" % solution["obj"][index])
 
@@ -237,11 +253,11 @@ def report(index, solution, s):
 
     print(
         "Combined upfront cost (with tax credit): $%.2f"
-        % (TAX_MOD * arr_cost + batt_cost)
+        % (TAX_MODIFIER * arr_cost + batt_cost)
     )
     print(
         "Energy cost offset: $%.2f"
-        % (solution["x_A"][index] * ENERGY_COST * TOTAL_PROD * SPAN)
+        % (solution["x_A"][index] * ENERGY_COST * ANNUAL_PRODUCTION * SYSTEM_LIFESPAN)
     )
 
     print()
@@ -252,6 +268,7 @@ def report(index, solution, s):
 
 
 def main():
+    """The main entrypoint for the program."""
     solution = {
         "obj": [],
         "x_A": [],
@@ -262,11 +279,12 @@ def main():
         "d_c": [],
         "d_dc": [],
     }
-    goal = len(USAGE_VALUES)
+    goal = len(USAGE_CONSTRAINTS)
     if not exists("solutions.json"):
         start_time = time.time()
+        # Solve a problem for each 24-hour period in the year.
         for i in range(goal):
-            result = solve_problem(PROD_VALUES[i], USAGE_VALUES[i])
+            result = solve_problem(PRODUCTION_CONSTRAINTS[i], USAGE_CONSTRAINTS[i])
             for j in result:
                 solution[j].append(result[j])
             print_progress_bar(
